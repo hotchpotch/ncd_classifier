@@ -1,4 +1,4 @@
-from src.npc_classifier.npc_classifier import NPCClassifier
+from npc_classifier.npc_classifier import NPCClassifier
 
 
 def test_npc_classifier():

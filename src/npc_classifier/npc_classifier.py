@@ -125,11 +125,26 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
         distances = self.calculate_distances_to_train_texts(self.train_texts, text)
         sorted_indices = np.argsort(np.array(distances))
         label_counts = defaultdict(int)
+        for label in self.train_labels:
+            label_counts[label] += 1
+        total_label_counts = sum(label_counts.values())
+        for label in label_counts:
+            label_counts[label] /= total_label_counts
+            # 逆数にする
+            label_counts[label] = 1 / label_counts[label]
+        # print(label_counts)
+        nearest_label_counts = defaultdict(int)
         for j in range(self.k):
             nearest_label = self.train_labels[sorted_indices[j]]
-            label_counts[nearest_label] += 1
+            nearest_label_counts[nearest_label] += 1
+            # print(most_frequent_label)
+        # label_counts を掛ける
+        for label in label_counts:
+            nearest_label_counts[label] *= label_counts[label]
+        # print(nearest_label_counts)
+
         sorted_label_counts = sorted(
-            label_counts.items(), key=operator.itemgetter(1), reverse=True
+            nearest_label_counts.items(), key=operator.itemgetter(1), reverse=True
         )
         most_frequent_label = sorted_label_counts[0][0]
         return most_frequent_label

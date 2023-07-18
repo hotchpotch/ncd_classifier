@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.5.0"]
 
 [tool.poetry]
 authors = ["Your Name <your.email@example.com>"]
@@ -19,3 +19,7 @@ scikit-learn = "^1.2.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.4"
+
+[tool.poetry.group.dev.dependencies]
+datasets = "^2.13.1"
+
