@@ -1,23 +1,12 @@
+from __future__ import annotations
 from typing import Callable, List, Union
 from sklearn.base import BaseEstimator, ClassifierMixin
-import zlib
 import numpy as np
 from collections import defaultdict
 import operator
 from joblib import Parallel, delayed
 from typing import cast
-
-
-def zlib_compression_length(text: str) -> int:
-    """
-    Uses zlib to compress a string and returns the length of the compressed string.
-    Args:
-        text (str): Text to be compressed.
-
-    Returns:
-        int: Length of the compressed text.
-    """
-    return len(zlib.compress(text.encode("utf-8")))
+from .compressors import COMPRESSORS
 
 
 def concatenate_texts(text1: str, text2: str) -> str:
@@ -58,7 +47,7 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
         compute_distance: Callable[
             [int, int, int], float
         ] = compute_normalized_distance,
-        compress_len_fn: Callable[[str], int] = zlib_compression_length,
+        compress_len_fn: Callable[[str | list[int]], int] = COMPRESSORS["gzip"],
         k: int = 2,
         n_jobs: int = 1,
     ):
