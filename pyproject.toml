@@ -9,7 +9,7 @@ name = "ncd_classifier"
 packages = [
   {include = "ncd_classifier", from = "src"},
 ]
-version = "0.1.0"
+version = "0.1.1"
 repository = "https://github.com/hotchpotch/ncd_classifier"
 homepage = "https://github.com/hotchpotch/"
 
