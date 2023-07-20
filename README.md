@@ -28,10 +28,16 @@ Here is a simple example of how to use the NCD Classifier:
 from ncd_classifier import NCDClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix
 
+X_train = ["hello world", "hello?", "world?", "good evening"]
+y_train = [0, 0, 0, 1]
+X_test = ["hello", "world"]
+y_test = [0, 0]
+
 classifier = NCDClassifier(n_jobs=-1, k=3, show_progress=True, label_frequency_weighting=False)
 classifier.fit(X_train, y_train)
 y_pred = classifier.predict(X_test)
 
+print(y_pred)
 print(accuracy_score(y_test, y_pred))
 print(confusion_matrix(y_test, y_pred))
 ```
