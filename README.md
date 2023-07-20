@@ -17,7 +17,7 @@ This library is designed with a scikit-learn interface, making it familiar and s
 This library can be installed using pip:
 
 ```bash
-pip install ncd_classifier
+pip install ncd-classifier
 ```
 
 ## Usage
