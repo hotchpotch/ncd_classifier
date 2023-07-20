@@ -1,11 +1,13 @@
 from __future__ import annotations
+import os
 from typing import Callable
 from sklearn.base import BaseEstimator, ClassifierMixin
 import numpy as np
 from collections import defaultdict
 import operator
-from joblib import Parallel, delayed
+from concurrent.futures import ThreadPoolExecutor
 from .compressors import COMPRESSORS
+from tqdm import tqdm
 
 
 def default_concatenate_fn(
@@ -26,6 +28,12 @@ def compute_normalized_distance(len1: int, len2: int, combined_len: int) -> floa
     return (combined_len - min(len1, len2)) / max(len1, len2)
 
 
+def _softmax(x: list[float]) -> list[float]:
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum(axis=0)  # only difference
+
+
 class NPCClassifier(BaseEstimator, ClassifierMixin):
     """
     A classifier based on the Normalized Compression Distance (NCD).
@@ -41,7 +49,8 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
         ] = compute_normalized_distance,
         compress_len_fn: Callable[[str | list[int]], int] = COMPRESSORS["zlib"],
         k: int = 3,
-        n_jobs: int = 1,
+        n_jobs: int = -1,
+        show_progress: bool = False,
     ):
         """
         Initializes the NPCClassifier.
@@ -50,30 +59,48 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
         self.compute_distance = compute_distance
         self.compress_len_fn = compress_len_fn
         self.k = k
-        self.n_jobs = n_jobs
+        self.n_jobs = n_jobs if n_jobs != -1 else max(1, (os.cpu_count() or 2) - 1)
+        self.show_progress = show_progress
         self.train_data = []
         self.train_labels = []
         self.compressed_train_data = []
+        self._label_scores = []
+        self._label_counts = []
+        self._label_probabilities = []
 
-    def fit(self, X: list[str | list[int]], y: list[int]) -> NPCClassifier:
+    def fit(self, X: list[str] | list[list[int]], y: list[int]) -> NPCClassifier:
         """
         Fits the model using the training data.
         """
         self.train_data = X
         self.train_labels = y
-        compressed_train_data = Parallel(n_jobs=self.n_jobs)(
-            delayed(self.compress_len_fn)(x) for x in X
-        )
-        self.compressed_train_data = list(compressed_train_data)
+
+        with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
+            futures = [executor.submit(self.compress_len_fn, x) for x in X]
+
+            if self.show_progress:
+                futures = tqdm(futures, total=len(futures), desc="Fitting")
+
+            self.compressed_train_data = [future.result() for future in futures]
+
         return self
 
-    def predict(self, X: list[str | list[int]]) -> list[int]:
+    def predict(self, X: list[str] | list[list[int]]) -> list[int]:
         """
         Predicts the labels of the given data.
         """
-        predicted_labels = Parallel(n_jobs=self.n_jobs)(
-            delayed(self.predict_single)(x) for x in X
-        )
+        self._label_scores = []
+        self._label_counts = []
+        self._label_probabilities = []
+
+        with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
+            futures = [executor.submit(self.predict_single, x) for x in X]
+
+            if self.show_progress:
+                futures = tqdm(futures, total=len(futures), desc="Predicting")
+
+            predicted_labels = [future.result() for future in futures]
+
         return predicted_labels
 
     def predict_single(self, data: str | list[int]) -> int:
@@ -82,7 +109,7 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
         """
         distances = self.calculate_distances_to_train_data(self.train_data, data)
         sorted_indices = np.argsort(np.array(distances))
-        label_counts = defaultdict(int)
+        label_counts = defaultdict(float)
         for label in self.train_labels:
             label_counts[label] += 1
         total_label_counts = sum(label_counts.values())
@@ -90,31 +117,42 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
             label_counts[label] /= total_label_counts
             label_counts[label] = 1 / label_counts[label]
         nearest_label_counts = defaultdict(int)
+        nearest_label_scores = defaultdict(float)
         for j in range(self.k):
             nearest_label = self.train_labels[sorted_indices[j]]
             nearest_label_counts[nearest_label] += 1
         for label in label_counts:
             # Taking into account the occurrence rate
-            nearest_label_counts[label] *= label_counts[label]
+            nearest_label_scores[label] = (
+                nearest_label_counts[label] * label_counts[label]
+            )
 
         sorted_label_counts = sorted(
-            nearest_label_counts.items(), key=operator.itemgetter(1), reverse=True
+            nearest_label_scores.items(), key=operator.itemgetter(1), reverse=True
         )
         most_frequent_label = sorted_label_counts[0][0]
+        softmax_probabilities = list(
+            _softmax([count for _, count in sorted_label_counts])
+        )
+
+        self._label_scores.append(dict(nearest_label_scores))
+        self._label_counts.append(dict(nearest_label_counts))
+        self._label_probabilities.append(softmax_probabilities)
+
         return most_frequent_label
 
     def calculate_distances_to_train_data(
-        self, train_data: list[str | list[int]], test_data: str | list[int]
+        self, train_data: list[str] | list[list[int]], test_data: str | list[int]
     ) -> list[float]:
         """
         Calculates the distances from a test instance to all training instances.
         """
         distances = []
         test_data_compressed_len = self.compress_len_fn(test_data)
-        for j, train_data in enumerate(train_data):
+        for j, data in enumerate(train_data):
             train_data_compressed_len = self.compressed_train_data[j]
             combined_data_compressed_len = self.compress_len_fn(
-                self.concatenate_fn(test_data, train_data)
+                self.concatenate_fn(test_data, data)
             )
             distance = self.compute_distance(
                 test_data_compressed_len,
