@@ -10,6 +10,7 @@ packages = [
   {include = "npc_classifier", from = "src"},
 ]
 version = "0.1.0"
+repository = "https://github.com/hotchpotch/npc_classifier"
 
 [tool.poetry.dependencies]
 joblib = "^1.0.1"
