@@ -59,6 +59,27 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
     ):
         """
         Initializes the NPCClassifier.
+
+        Parameters:
+        concatenate_fn (Callable): A function used for combining two pieces of data.
+            This function should take two arguments of the same type, either string or sequence of integers,
+            and return an output of the same type. Default is a function that concatenates two inputs with a space between them if they are strings
+            and uses numpy's concatenate if they are numpy arrays.
+
+        compute_distance (Callable): A function that calculates the normalized compression distance.
+            It should take three integers as inputs: the compressed length of the first data,
+            the compressed length of the second data, and the compressed length of the combined data.
+            It should return a float representing the distance. Default is compute_normalized_distance function.
+
+        compress_len_fn (Callable): A function used to compress data and return its length.
+            It should take a string or a sequence of integers and return an integer.
+            Default is zlib compression function from the COMPRESSORS dictionary.
+
+        k (int): The number of nearest neighbors to consider when predicting the label of a data point. Default is 3.
+
+        n_jobs (int): The number of jobs to use for the computation. If -1, then the number of jobs is set to the number of physical cores minus one. Default is -1.
+
+        show_progress (bool): If True, display a progress bar for the fitting and prediction process. Default is False.
         """
         self.concatenate_fn = concatenate_fn
         self.compute_distance = compute_distance
