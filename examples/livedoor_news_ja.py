@@ -14,7 +14,7 @@ config = args.parse_args()
 identity = lambda x: x
 
 if config.use_tokenizer:
-    from transformers import AutoTokenizer
+    from transformers import AutoTokenizer  # type: ignore
 
     tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-large")
 

@@ -14,7 +14,7 @@ config = args.parse_args()
 identity = lambda x: x
 
 if config.use_tokenizer:
-    from transformers import AutoTokenizer
+    from transformers import AutoTokenizer  # type: ignore
 
     tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-large")
 
@@ -40,7 +40,7 @@ if config.debug:
     # train_df / test_df を label を考慮の上、サンプリングする
     train_df = (
         train_df.groupby("label")
-        .apply(lambda x: x.sample(n=1000, random_state=42))
+        .apply(lambda x: x.sample(n=10000, random_state=42))
         .reset_index(drop=True)
     )
     test_df = (
@@ -64,7 +64,7 @@ y_train = train_df["label"].tolist()
 X_train = list(map(convert_fn, X_train_text.tolist()))
 X_test = list(map(convert_fn, X_test_text.tolist()))
 
-classifier = NPCClassifier(n_jobs=-1, k=3, show_progress=True)
+classifier = NPCClassifier(n_jobs=-1, k=5, show_progress=True)
 classifier.fit(X_train, y_train)
 
 y_pred = classifier.predict(X_test)
@@ -83,9 +83,9 @@ print(confusion_matrix(test_df["label"].tolist(), y_pred))
 # print(classifier._probabilities)
 
 """
-0.8913157894736842
-[[1684   41  116   59]
- [  16 1814   38   32]
- [  55   32 1653  160]
- [  73   20  184 1623]]
+0.8938157894736842
+[[1687   53   98   62]
+ [  15 1827   33   25]
+ [  60   29 1654  157]
+ [  66   33  176 1625]]
 """
