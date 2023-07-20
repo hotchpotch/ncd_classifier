@@ -4,12 +4,12 @@ import bz2
 import lzma
 import gzip
 import numpy as np
-from typing import Callable, Union
+from typing import Callable, Sequence, Union
 
 
 def compression_length(
     compression_function: Callable[[bytes], bytes]
-) -> Callable[[Union[str, list[int]]], int]:
+) -> Callable[[Union[str, Sequence[int]]], int]:
     """
     Returns a function that uses the provided compression function to compress a string or a list of integers
     and returns the length of the compressed data.
@@ -21,10 +21,13 @@ def compression_length(
         Callable[[Union[str, list[int]]], int]: Function that takes a string or a list of integers and returns the length of the compressed data.
     """
 
-    def inner(data: Union[str, list[int]]) -> int:
+    def inner(data: Union[str, Sequence[int]]) -> int:
         if isinstance(data, str):
             compressed_data = compression_function(data.encode("utf-8"))
-        elif isinstance(data, list) and all(isinstance(i, int) for i in data):
+        elif isinstance(data, np.ndarray):
+            # np.ndarray だったら
+            compressed_data = compression_function(data.tobytes())
+        elif isinstance(data, list):
             compressed_data = compression_function(np.array(data).tobytes())
 
         return len(compressed_data)  # type: ignore

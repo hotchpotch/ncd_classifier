@@ -1,5 +1,4 @@
 from __future__ import annotations
-import os
 from typing import Callable
 from sklearn.base import BaseEstimator, ClassifierMixin
 import numpy as np
@@ -8,15 +7,22 @@ import operator
 from concurrent.futures import ThreadPoolExecutor
 from .compressors import COMPRESSORS
 from tqdm import tqdm
+import os
+import math
+from typing import Callable, Sequence, Union
+from numpy import ndarray
+import numpy as np
 
 
 def default_concatenate_fn(
-    data1: str | list[int], data2: str | list[int]
-) -> str | list[int]:
+    data1: str | Sequence[int], data2: str | Sequence[int]
+) -> str | Sequence[int]:
     if isinstance(data1, str) and isinstance(data2, str):
         return data1 + " " + data2
-    elif isinstance(data1, list) and isinstance(data2, list):
-        return data1 + data2
+    elif isinstance(data1, ndarray) and isinstance(data2, ndarray):
+        return np.concatenate((data1, data2), axis=0)  # type: ignore
+    elif isinstance(data1, Sequence) and isinstance(data2, Sequence):
+        return list(data1) + list(data2)  # type: ignore
     else:
         raise ValueError("data1 and data2 must be the same type.")
 
@@ -28,7 +34,7 @@ def compute_normalized_distance(len1: int, len2: int, combined_len: int) -> floa
     return (combined_len - min(len1, len2)) / max(len1, len2)
 
 
-def _softmax(x: list[float]) -> list[float]:
+def _softmax(x: Sequence[float]) -> Sequence[float]:
     """Compute softmax values for each sets of scores in x."""
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum(axis=0)  # only difference
@@ -42,12 +48,12 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
     def __init__(
         self,
         concatenate_fn: Callable[
-            [str | list[int], str | list[int]], str | list[int]
+            [str | Sequence[int], str | Sequence[int]], str | Sequence[int]
         ] = default_concatenate_fn,
         compute_distance: Callable[
             [int, int, int], float
         ] = compute_normalized_distance,
-        compress_len_fn: Callable[[str | list[int]], int] = COMPRESSORS["zlib"],
+        compress_len_fn: Callable[[str | Sequence[int]], int] = COMPRESSORS["zlib"],
         k: int = 3,
         n_jobs: int = -1,
         show_progress: bool = False,
@@ -64,11 +70,13 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
         self.train_data = []
         self.train_labels = []
         self.compressed_train_data = []
-        self._label_scores = []
-        self._label_counts = []
-        self._label_probabilities = []
+        self._scores = []
+        self._counts = []
+        self._probabilities = []
 
-    def fit(self, X: list[str] | list[list[int]], y: list[int]) -> NPCClassifier:
+    def fit(
+        self, X: Sequence[str] | Sequence[Sequence[int]], y: Sequence[int]
+    ) -> NPCClassifier:
         """
         Fits the model using the training data.
         """
@@ -85,13 +93,13 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
 
         return self
 
-    def predict(self, X: list[str] | list[list[int]]) -> list[int]:
+    def predict(self, X: Sequence[str] | Sequence[Sequence[int]]) -> Sequence[int]:
         """
         Predicts the labels of the given data.
         """
-        self._label_scores = []
-        self._label_counts = []
-        self._label_probabilities = []
+        self._scores = []
+        self._counts = []
+        self._probabilities = []
 
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
             futures = [executor.submit(self.predict_single, x) for x in X]
@@ -103,7 +111,7 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
 
         return predicted_labels
 
-    def predict_single(self, data: str | list[int]) -> int:
+    def predict_single(self, data: str | Sequence[int]) -> int:
         """
         Predicts the label of a single instance.
         """
@@ -135,15 +143,17 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
             _softmax([count for _, count in sorted_label_counts])
         )
 
-        self._label_scores.append(dict(nearest_label_scores))
-        self._label_counts.append(dict(nearest_label_counts))
-        self._label_probabilities.append(softmax_probabilities)
+        self._scores.append(dict(nearest_label_scores))
+        self._counts.append(dict(nearest_label_counts))
+        self._probabilities.append(softmax_probabilities)
 
         return most_frequent_label
 
     def calculate_distances_to_train_data(
-        self, train_data: list[str] | list[list[int]], test_data: str | list[int]
-    ) -> list[float]:
+        self,
+        train_data: Sequence[str] | Sequence[Sequence[int]],
+        test_data: str | Sequence[int],
+    ) -> Sequence[float]:
         """
         Calculates the distances from a test instance to all training instances.
         """
