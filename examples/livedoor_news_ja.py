@@ -70,7 +70,7 @@ X_train = list(map(convert_fn, X_train_text.tolist()))
 X_test = list(map(convert_fn, X_test_text.tolist()))
 
 classifier = NPCClassifier(
-    n_jobs=-1, k=10, show_progress=True, label_frequency_weighting=True
+    n_jobs=-1, k=3, show_progress=True, label_frequency_weighting=True
 )
 classifier.fit(X_train, y_train)
 

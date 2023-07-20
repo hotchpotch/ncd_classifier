@@ -82,7 +82,7 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
 
         show_progress (bool): If True, display a progress bar for the fitting and prediction process. Default is False.
 
-        label_frequency_weighting (bool): If True, the frequency of category labels in the training data is taken into account to normalize the classifier's prediction scores. If False, all labels are treated with equal weight regardless of their frequency. Default is False.
+        label_frequency_weighting (bool): If True, the frequency of category labels in the training data is taken into account to normalize the classifier's prediction scores. This can be particularly effective when there is significant variability in the frequency of different labels. If False, all labels are treated with equal weight regardless of their frequency. Default is False.
         """
         self.concatenate_fn = concatenate_fn
         self.compute_distance = compute_distance
