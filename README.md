@@ -28,9 +28,7 @@ Here is a simple example of how to use the NPC Classifier:
 from npc_classifier import NPCClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix
 
-# Assume X_train, y_train, and X_test are your preprocessed training and test data
-
-classifier = NPCClassifier(n_jobs=-1, k=3, show_progress=True)
+classifier = NPCClassifier(n_jobs=-1, k=3, show_progress=True, label_frequency_weighting=False)
 classifier.fit(X_train, y_train)
 y_pred = classifier.predict(X_test)
 

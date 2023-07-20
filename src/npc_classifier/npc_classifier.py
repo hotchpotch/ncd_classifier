@@ -4,7 +4,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 import numpy as np
 from collections import defaultdict
 import operator
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from .compressors import COMPRESSORS
 from tqdm import tqdm
 from typing import Callable, Sequence
@@ -55,6 +55,7 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
         compress_len_fn: Callable[[str | Sequence[int]], int] = COMPRESSORS["zlib"],
         k: int = 3,
         n_jobs: int = -1,
+        label_frequency_weighting: bool = False,
         show_progress: bool = False,
     ):
         """
@@ -77,20 +78,23 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
 
         k (int): The number of nearest neighbors to consider when predicting the label of a data point. Default is 3.
 
-        n_jobs (int): The number of jobs to use for the computation. If -1, then the number of jobs is set to the number of physical cores minus one. Default is -1.
+        n_jobs (int): The number of jobs to use for the computation. If -1, then the number of jobs is set to the number of cores minus one. Default is -1.
 
         show_progress (bool): If True, display a progress bar for the fitting and prediction process. Default is False.
+
+        label_frequency_weighting (bool): If True, the frequency of category labels in the training data is taken into account to normalize the classifier's prediction scores. If False, all labels are treated with equal weight regardless of their frequency. Default is False.
         """
         self.concatenate_fn = concatenate_fn
         self.compute_distance = compute_distance
         self.compress_len_fn = compress_len_fn
         self.k = k
         if n_jobs == -1:
-            num_physical_cores = psutil.cpu_count(logical=False)
-            self.n_jobs = max(1, num_physical_cores - 1)
+            num_cores = psutil.cpu_count(logical=True)
+            self.n_jobs = max(1, num_cores - 1)
         else:
             self.n_jobs = max(1, n_jobs)
         self.show_progress = show_progress
+        self.label_frequency_weighting = label_frequency_weighting
         self.train_data = []
         self.train_labels = []
         self.compressed_train_data = []
@@ -107,7 +111,7 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
         self.train_data = X
         self.train_labels = y
 
-        with ProcessPoolExecutor(max_workers=self.n_jobs) as executor:
+        with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
             futures = [executor.submit(self.compress_len_fn, x) for x in X]
 
             if self.show_progress:
@@ -148,16 +152,19 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
         for label in label_counts:
             label_counts[label] /= total_label_counts
             label_counts[label] = 1 / label_counts[label]
-        nearest_label_counts = defaultdict(int)
+        nearest_label_counts = defaultdict(float)
         nearest_label_scores = defaultdict(float)
         for j in range(self.k):
             nearest_label = self.train_labels[sorted_indices[j]]
             nearest_label_counts[nearest_label] += 1
         for label in label_counts:
-            # Taking into account the occurrence rate
-            nearest_label_scores[label] = (
-                nearest_label_counts[label] * label_counts[label]
-            )
+            if self.label_frequency_weighting:
+                # Taking into account the occurrence rate
+                nearest_label_scores[label] = (
+                    nearest_label_counts[label] * label_counts[label]
+                )
+            else:
+                nearest_label_scores = nearest_label_counts
 
         sorted_label_counts = sorted(
             nearest_label_scores.items(), key=operator.itemgetter(1), reverse=True
