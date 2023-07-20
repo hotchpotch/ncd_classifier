@@ -4,14 +4,13 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 import numpy as np
 from collections import defaultdict
 import operator
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from .compressors import COMPRESSORS
 from tqdm import tqdm
-import os
-import math
-from typing import Callable, Sequence, Union
+from typing import Callable, Sequence
 from numpy import ndarray
 import numpy as np
+import psutil
 
 
 def default_concatenate_fn(
@@ -65,7 +64,11 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
         self.compute_distance = compute_distance
         self.compress_len_fn = compress_len_fn
         self.k = k
-        self.n_jobs = n_jobs if n_jobs != -1 else max(1, (os.cpu_count() or 2) - 1)
+        if n_jobs == -1:
+            num_physical_cores = psutil.cpu_count(logical=False)
+            self.n_jobs = max(1, num_physical_cores - 1)
+        else:
+            self.n_jobs = max(1, n_jobs)
         self.show_progress = show_progress
         self.train_data = []
         self.train_labels = []
@@ -83,7 +86,7 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
         self.train_data = X
         self.train_labels = y
 
-        with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
+        with ProcessPoolExecutor(max_workers=self.n_jobs) as executor:
             futures = [executor.submit(self.compress_len_fn, x) for x in X]
 
             if self.show_progress:

@@ -1,57 +1,84 @@
+import argparse
+from typing import Sequence, cast
 from datasets import load_dataset
+import numpy as np
+import pandas as pd
 from npc_classifier.npc_classifier import NPCClassifier
 from sklearn.metrics import accuracy_score
-from transformers import AutoTokenizer
 
-tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-large")
+args = argparse.ArgumentParser()
+args.add_argument("--debug", action="store_true")
+args.add_argument("--use_tokenizer", action="store_true")
+config = args.parse_args()
 
+identity = lambda x: x
 
-def tokenize_str(text: str, tokenizer=tokenizer) -> str:
-    encoded_input = ",".join(
-        map(str, tokenizer(text, add_special_tokens=False)["input_ids"])  # type: ignore
-    )
-    return encoded_input
+if config.use_tokenizer:
+    from transformers import AutoTokenizer
 
+    tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-large")
+
+    def tokenize(text: str, tokenizer=tokenizer) -> Sequence[int]:
+        data = tokenizer(text, add_special_tokens=False)["input_ids"]  # type: ignore
+        return np.array(data)  # type: ignore
+
+    convert_fn = tokenize
+else:
+    convert_fn = identity
 
 ds = load_dataset("shunk031/JGLUE", name="MARC-ja")  # type: ignore
 train_df = ds["train"].to_pandas()  # type: ignore
-valid_df = ds["validation"].to_pandas()  # type: ignore
+val_df = ds["validation"].to_pandas()  # type: ignore
 
-# 10000件ランダム抽出
-# train_df = train_df.sample(n=10000, random_state=42)  # type: ignore
-# valid_df = valid_df.sample(n=200, random_state=42)  # type: ignore
+train_df = cast(pd.DataFrame, train_df)
+val_df = cast(pd.DataFrame, val_df)
 
-# label ごとに 1000件ランダム抽出
-# train_df = train_df.groupby("label").apply(lambda x: x.sample(n=10000, random_state=42)).reset_index(drop=True)  # type: ignore
-# valid_df = valid_df.groupby("label").apply(lambda x: x.sample(n=500, random_state=42)).reset_index(drop=True)  # type: ignore
+if config.debug:
+    # train_df / test_df を label を考慮の上、サンプリングする
+    train_df = (
+        train_df.groupby("label")
+        .apply(lambda x: x.sample(n=1000, random_state=42))
+        .reset_index(drop=True)
+    )
+    val_df = (
+        val_df.groupby("label")
+        .apply(lambda x: x.sample(n=10, random_state=42))
+        .reset_index(drop=True)
+    )
 
-print(len(train_df), len(valid_df))
-# label のカウントを出す
+
+print(f"train: {len(train_df)}, test: {len(val_df)}")
+
 print(train_df["label"].value_counts())
-print(valid_df["label"].value_counts())
+print(val_df["label"].value_counts())
 
-# X_train = train_df["sentence"].tolist()  # type: ignore
-# X_test = valid_df["sentence"].tolist()  # type: ignore
-y_train = train_df["label"].tolist()  # type: ignore
+X_train_text = train_df["sentence"]
+X_test_text = val_df["sentence"]
 
-X_train = list(map(tokenize_str, train_df["sentence"].tolist()))  # type: ignore
-X_test = list(map(tokenize_str, valid_df["sentence"].tolist()))  # type: ignore
-# print(X_train)
 
-classifier = NPCClassifier(n_jobs=15, k=30)
+y_train = train_df["label"].tolist()
+
+X_train = list(map(convert_fn, X_train_text.tolist()))
+X_test = list(map(convert_fn, X_test_text.tolist()))
+
+classifier = NPCClassifier(n_jobs=-1, k=3, show_progress=True)
 classifier.fit(X_train, y_train)
+
 y_pred = classifier.predict(X_test)
 
 # acc の表示
 
-print(accuracy_score(valid_df["label"].tolist(), y_pred))
+print(accuracy_score(val_df["label"].tolist(), y_pred))
 
 # TP / FP / FN / FP の表示
 from sklearn.metrics import confusion_matrix
 
-print(confusion_matrix(valid_df["label"].tolist(), y_pred))
+print(confusion_matrix(val_df["label"].tolist(), y_pred))
 
-# ふつーの
-# 0.8516094800141493
-# xlm-roberta-large
-# 0.853555005305978
+# print(classifier._counts)
+# print(classifier._scores)
+# print(classifier._probabilities)
+
+"""
+
+"""
