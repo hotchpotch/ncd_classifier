@@ -4,7 +4,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 import numpy as np
 from collections import defaultdict
 import operator
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from .compressors import COMPRESSORS
 from tqdm import tqdm
 import os
@@ -101,7 +101,7 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
         self._counts = []
         self._probabilities = []
 
-        with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
+        with ProcessPoolExecutor(max_workers=self.n_jobs) as executor:
             futures = [executor.submit(self.predict_single, x) for x in X]
 
             if self.show_progress:

@@ -7,38 +7,45 @@ import numpy as np
 from typing import Callable, Sequence, Union
 
 
-def compression_length(
-    compression_function: Callable[[bytes], bytes]
-) -> Callable[[Union[str, Sequence[int]]], int]:
+def compress_data(
+    data: Union[str, Sequence[int]], compression_function: Callable[[bytes], bytes]
+) -> int:
     """
-    Returns a function that uses the provided compression function to compress a string or a list of integers
+    Uses the provided compression function to compress a string or a list of integers
     and returns the length of the compressed data.
 
     Args:
+        data (Union[str, list[int]]): Data to compress.
         compression_function (Callable[[bytes], bytes]): Function to use for compression.
 
     Returns:
-        Callable[[Union[str, list[int]]], int]: Function that takes a string or a list of integers and returns the length of the compressed data.
+        int: Length of the compressed data.
     """
+    if isinstance(data, str):
+        compressed_data = compression_function(data.encode("utf-8"))
+    elif isinstance(data, np.ndarray):
+        compressed_data = compression_function(data.tobytes())
+    elif isinstance(data, list):
+        compressed_data = compression_function(np.array(data).tobytes())
 
-    def inner(data: Union[str, Sequence[int]]) -> int:
-        if isinstance(data, str):
-            compressed_data = compression_function(data.encode("utf-8"))
-        elif isinstance(data, np.ndarray):
-            # np.ndarray だったら
-            compressed_data = compression_function(data.tobytes())
-        elif isinstance(data, list):
-            compressed_data = compression_function(np.array(data).tobytes())
-
-        return len(compressed_data)  # type: ignore
-
-    return inner
+    return len(compressed_data)  # type: ignore
 
 
-gzip_compression = compression_length(gzip.compress)
-zlib_compression = compression_length(zlib.compress)
-bz2_compression = compression_length(bz2.compress)
-lzma_compression = compression_length(lzma.compress)
+def gzip_compression(data):
+    return compress_data(data, gzip.compress)
+
+
+def zlib_compression(data):
+    return compress_data(data, zlib.compress)
+
+
+def bz2_compression(data):
+    return compress_data(data, bz2.compress)
+
+
+def lzma_compression(data):
+    return compress_data(data, lzma.compress)
+
 
 COMPRESSORS = {
     "gzip": gzip_compression,
