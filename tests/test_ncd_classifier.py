@@ -1,4 +1,4 @@
-from npc_classifier import NPCClassifier, COMPRESSORS
+from ncd_classifier import NCDClassifier, COMPRESSORS
 from sklearn.metrics import accuracy_score
 
 
@@ -18,10 +18,10 @@ def get_list_int_data():
     return X_train, y_train, X_test, y_text
 
 
-def test_npc_classifier():
+def test_ncd_classifier():
     X_train, y_train, X_test, y_text = get_data()
 
-    classifier = NPCClassifier(n_jobs=2, k=3)
+    classifier = NCDClassifier(n_jobs=2, k=3)
     classifier.fit(X_train, y_train)
     y_pred = classifier.predict(X_test)
 
@@ -31,10 +31,10 @@ def test_npc_classifier():
     assert all(isinstance(y, int) for y in y_pred)
 
 
-def test_npc_classifier_list_int():
+def test_ncd_classifier_list_int():
     X_train, y_train, X_test, y_text = get_list_int_data()
 
-    classifier = NPCClassifier(n_jobs=2, k=3)
+    classifier = NCDClassifier(n_jobs=2, k=3)
     classifier.fit(X_train, y_train)
     y_pred = classifier.predict(X_test)
 
@@ -44,11 +44,11 @@ def test_npc_classifier_list_int():
     assert all(isinstance(y, int) for y in y_pred)
 
 
-def test_npc_classifier_all_comporessors():
+def test_ncd_classifier_all_comporessors():
     X_train, y_train, X_test, y_text = get_data()
 
     for name, fn in COMPRESSORS.items():
-        classifier = NPCClassifier(n_jobs=2, k=3, compress_len_fn=fn)
+        classifier = NCDClassifier(n_jobs=2, k=3, compress_len_fn=fn)
         classifier.fit(X_train, y_train)
         y_pred = classifier.predict(X_test)
 

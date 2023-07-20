@@ -5,12 +5,13 @@ requires = ["poetry-core>=1.5.0"]
 [tool.poetry]
 authors = ["hotchpotch <hotchpotch@gmail.com>"]
 description = "Normalized Compression Distance based Classifier"
-name = "npc_classifier"
+name = "ncd_classifier"
 packages = [
-  {include = "npc_classifier", from = "src"},
+  {include = "ncd_classifier", from = "src"},
 ]
 version = "0.1.0"
-repository = "https://github.com/hotchpotch/npc_classifier"
+repository = "https://github.com/hotchpotch/ncd_classifier"
+homepage = "https://github.com/hotchpotch/"
 
 [tool.poetry.dependencies]
 joblib = "^1.0.1"

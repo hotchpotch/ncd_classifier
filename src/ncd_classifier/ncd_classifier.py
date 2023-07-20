@@ -39,7 +39,7 @@ def _softmax(x: Sequence[float]) -> Sequence[float]:
     return e_x / e_x.sum(axis=0)  # only difference
 
 
-class NPCClassifier(BaseEstimator, ClassifierMixin):
+class NCDClassifier(BaseEstimator, ClassifierMixin):
     """
     A classifier based on the Normalized Compression Distance (NCD).
     """
@@ -59,7 +59,7 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
         show_progress: bool = False,
     ):
         """
-        Initializes the NPCClassifier.
+        Initializes the NCDClassifier.
 
         Parameters:
         concatenate_fn (Callable): A function used for combining two pieces of data.
@@ -104,7 +104,7 @@ class NPCClassifier(BaseEstimator, ClassifierMixin):
 
     def fit(
         self, X: Sequence[str] | Sequence[Sequence[int]], y: Sequence[int]
-    ) -> NPCClassifier:
+    ) -> NCDClassifier:
         """
         Fits the model using the training data.
         """

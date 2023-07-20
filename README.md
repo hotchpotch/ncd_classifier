@@ -1,6 +1,6 @@
-# NPC Classifier
+# NCD Classifier
 
-NPC Classifier is a Python library that implements the method proposed in the paper ["Low-Resource" Text Classification: A Parameter-Free Classification Method with Compressors"](https://aclanthology.org/2023.findings-acl.426/). This method is a non-parametric alternative to deep neural networks for text classification, using a combination of a simple compressor like gzip with a k-nearest-neighbor classifier. It is easy to use, lightweight, and does not require any training parameters, making it suitable for low-resource languages and few-shot settings.
+NCD Classifier is a Python library that implements the method proposed in the paper ["Low-Resource" Text Classification: A Parameter-Free Classification Method with Compressors"](https://aclanthology.org/2023.findings-acl.426/). This method is a non-parametric alternative to deep neural networks for text classification, using a combination of a simple compressor like gzip with a k-nearest-neighbor classifier. It is easy to use, lightweight, and does not require any training parameters, making it suitable for low-resource languages and few-shot settings.
 
 This code was implemented with reference to [https://github.com/bazingagin/npc_gzip](https://github.com/bazingagin/npc_gzip).
 
@@ -17,18 +17,18 @@ This library is designed with a scikit-learn interface, making it familiar and s
 This library can be installed using pip:
 
 ```bash
-pip install npc_classifier
+pip install ncd_classifier
 ```
 
 ## Usage
 
-Here is a simple example of how to use the NPC Classifier:
+Here is a simple example of how to use the NCD Classifier:
 
 ```python
-from npc_classifier import NPCClassifier
+from ncd_classifier import NCDClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix
 
-classifier = NPCClassifier(n_jobs=-1, k=3, show_progress=True, label_frequency_weighting=False)
+classifier = NCDClassifier(n_jobs=-1, k=3, show_progress=True, label_frequency_weighting=False)
 classifier.fit(X_train, y_train)
 y_pred = classifier.predict(X_test)
 

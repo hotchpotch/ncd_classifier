@@ -3,7 +3,7 @@ from typing import Sequence, cast
 from datasets import load_dataset
 import numpy as np
 import pandas as pd
-from npc_classifier.npc_classifier import NPCClassifier
+from ncd_classifier.ncd_classifier import NCDClassifier
 from sklearn.metrics import accuracy_score
 
 args = argparse.ArgumentParser()
@@ -64,7 +64,7 @@ y_train = train_df["label"].tolist()
 X_train = list(map(convert_fn, X_train_text.tolist()))
 X_test = list(map(convert_fn, X_test_text.tolist()))
 
-classifier = NPCClassifier(n_jobs=-1, k=5, show_progress=True)
+classifier = NCDClassifier(n_jobs=-1, k=5, show_progress=True)
 classifier.fit(X_train, y_train)
 
 y_pred = classifier.predict(X_test)
