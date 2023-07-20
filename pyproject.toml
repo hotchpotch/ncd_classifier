@@ -3,7 +3,7 @@ build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.5.0"]
 
 [tool.poetry]
-authors = ["Your Name <your.email@example.com>"]
+authors = ["hotchpotch <hotchpotch@gmail.com>"]
 description = "Normalized Compression Distance based Classifier"
 name = "npc-classifier"
 packages = [

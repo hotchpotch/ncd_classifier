@@ -83,5 +83,7 @@ print(confusion_matrix(val_df["label"].tolist(), y_pred))
 # print(classifier._probabilities)
 
 """
-
+0.8020870180403255
+[[4077  755]
+ [ 364  458]]
 """
